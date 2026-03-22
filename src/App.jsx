@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { db, ref, set, onValue } from "./firebase.js";
+import { db, ref, set, onValue } from "./firebase.js";
 
 // ══════════════════════════════════════════════════════
 //  DONNÉES — MAJ par Claude via recherche web
@@ -235,10 +237,16 @@ export default function App() {
   const tRef = useRef(null);
 
   useEffect(() => {
-    (()  => {
-      try { const saved=localStorage.getItem(SK); if(saved) setPronos(JSON.parse(saved)); } catch{}
+    const pronosRef = ref(db, "pronos");
+    const unsub = onValue(pronosRef, (snap) => {
+      const data = snap.val();
+      if (data) setPronos(data);
       setReady(true);
-    })();
+    }, () => {
+      try { const s=localStorage.getItem(SK); if(s) setPronos(JSON.parse(s)); } catch{}
+      setReady(true);
+    });
+    return () => unsub();
   }, []);
 
   const results = {};
@@ -252,26 +260,30 @@ export default function App() {
   function handleLogin(player) { setAuth(player); setShowPin(false); flash(`${player.emoji} ${player.name} connecté`); }
   function logout() { setAuth(null); setShowPin(false); setSelM(null); flash("Déconnecté"); }
 
-  function valider() {
+  async function valider() {
     if (!auth||!selM) return;
     const prev=(pronos[auth.id]||[]).filter(p=>p.matchId!==selM.id);
     const upd={...pronos,[auth.id]:[...prev,{matchId:selM.id,s1:+s1,s2:+s2,ts:Date.now()}]};
     setPronos(upd);
     try {
+      await set(ref(db, "pronos"), upd);
       localStorage.setItem(SK, JSON.stringify(upd));
       setSelM(null);
       flash(`${auth.emoji} ${selM.home} ${s1}–${s2} ${selM.away} sauvegardé ✓`);
-    } catch { flash("Erreur de sauvegarde"); }
+    } catch(e) { flash("Erreur sauvegarde: " + e.message); }
   }
 
   const [confirmReset, setConfirmReset] = useState(false);
 
-  function resetPronos() {
+  async function resetPronos() {
     const empty = {};
     setPronos(empty);
-    try { localStorage.setItem(SK, JSON.stringify(empty)); } catch {}
+    try {
+      await set(ref(db, "pronos"), empty);
+      localStorage.setItem(SK, JSON.stringify(empty));
+    } catch(e) { console.error(e); }
     setConfirmReset(false);
-    flash("🏆 Classement remis à zéro pour la WC 2026 !");
+    flash("Classement remis a zero pour la WC 2026 !");
   }
 
   function flash(msg) { setToast(msg); clearTimeout(tRef.current); tRef.current=setTimeout(()=>setToast(null),3000); }
