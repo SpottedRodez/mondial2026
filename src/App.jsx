@@ -446,6 +446,127 @@ export default function App() {
               <div style={{fontSize:13, color:D.gris}}>Les matchs, scores et stats apparaîtront ici dès le début du tournoi.</div>
             </div>
           )}
+
+          {/* ── RAF ── */}
+          {mainTab==="raf" && (
+            <div>
+              {/* Hero RAF */}
+              <div style={{background:"linear-gradient(135deg,rgba(232,0,45,0.12),rgba(13,27,62,0.9))", border:"1px solid rgba(232,0,45,0.3)", borderRadius:D.rlg, padding:"18px 20px", marginBottom:20}}>
+                <div style={{display:"flex", alignItems:"center", gap:16, flexWrap:"wrap"}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:52, color:"#E8002D", lineHeight:1}}>RAF</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:D.gris, letterSpacing:2}}>RODEZ AF</div>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:2, marginBottom:5}}>
+                      <span style={{color:"#E8002D"}}>{RAF.classement.pos}e</span> en Ligue 2 — {RAF.classement.pts} pts
+                    </div>
+                    <div style={{fontSize:13, color:"#C0CDE0", marginBottom:4}}>
+                      {RAF.classement.j}J · {RAF.classement.v}V {RAF.classement.n}N {RAF.classement.d}D · {RAF.classement.bp} buts pour · {RAF.classement.bc} contre
+                    </div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, color:"#F5C518"}}>{RAF.serie}</div>
+                  </div>
+                  <div style={{display:"flex", gap:8, flexShrink:0}}>
+                    {[["Play-offs","2 pts"],["Classement",RAF.classement.pos+"e"],["Points",RAF.classement.pts]].map(([l,v])=>(
+                      <div key={l} style={{textAlign:"center", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(232,0,45,0.2)", padding:"8px 12px", borderRadius:10}}>
+                        <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:20, color:"#E8002D", lineHeight:1}}>{v}</div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:D.gris, letterSpacing:1, marginTop:3}}>{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Resultats recents */}
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginBottom:10, paddingBottom:7, borderBottom:`1px solid ${D.border}`}}>
+                Resultats recents
+              </div>
+              {RAF.recents.map(m=>(
+                <div key={m.id} style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, padding:"13px 16px", marginBottom:10}}>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:10}}>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:"#E8002D", fontWeight:700}}>{m.journee} Ligue 2</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:D.gris}}>{m.date}</span>
+                  </div>
+                  <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10}}>
+                    <div style={{textAlign:"center", flex:1}}>
+                      <div style={{fontSize:32}}>{m.hL}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, marginTop:4, color:m.home==="Rodez AF"?"#E8002D":D.blanc}}>{m.home}</div>
+                    </div>
+                    <div style={{textAlign:"center", minWidth:90}}>
+                      <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:34, letterSpacing:3, color:m.result==="V"?"#00E87A":m.result==="N"?"#F5C518":"#E8002D"}}>{m.score.h}–{m.score.a}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, color:m.result==="V"?"#00E87A":m.result==="N"?"#F5C518":"#E8002D"}}>{m.result==="V"?"VICTOIRE":m.result==="N"?"NUL":"DEFAITE"}</div>
+                    </div>
+                    <div style={{textAlign:"center", flex:1}}>
+                      <div style={{fontSize:32}}>{m.aL}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, marginTop:4, color:m.away==="Rodez AF"?"#E8002D":D.blanc}}>{m.away}</div>
+                    </div>
+                  </div>
+                  {m.resume && m.resume.motm && <div style={{textAlign:"center", fontSize:11, color:D.or, marginTop:6, fontFamily:"'Barlow Condensed',sans-serif"}}>Homme du match : {m.resume.motm}</div>}
+                  {m.resume && m.resume.buts && m.resume.buts.length>0 && (
+                    <div style={{marginTop:7, padding:"6px 10px", background:"rgba(255,255,255,0.03)", borderRadius:6}}>
+                      {m.resume.buts.map((b,i)=><div key={i} style={{fontSize:11, color:"#C0CDE0", padding:"2px 0"}}>{b}</div>)}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Prochains matchs */}
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginTop:20, marginBottom:10, paddingBottom:7, borderBottom:`1px solid ${D.border}`}}>
+                Prochains matchs
+              </div>
+              {RAF.prochains.map(m=>(
+                <div key={m.id} style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, padding:"13px 16px", marginBottom:10}}>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:10}}>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:"#E8002D", fontWeight:700}}>{m.journee} Ligue 2</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:"#F5C518", fontWeight:700}}>{m.date}</span>
+                  </div>
+                  <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10}}>
+                    <div style={{textAlign:"center", flex:1}}>
+                      <div style={{fontSize:36}}>{m.hL}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, marginTop:4, color:m.home==="Rodez AF"?"#E8002D":D.blanc}}>{m.home}</div>
+                    </div>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:22, color:D.gris, letterSpacing:5}}>VS</div>
+                    <div style={{textAlign:"center", flex:1}}>
+                      <div style={{fontSize:36}}>{m.aL}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, marginTop:4, color:m.away==="Rodez AF"?"#E8002D":D.blanc}}>{m.away}</div>
+                    </div>
+                  </div>
+                  {m.venue && <div style={{textAlign:"center", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:D.gris, marginTop:8}}>📍 {m.venue}</div>}
+                  <div style={{marginTop:10, textAlign:"center"}}>
+                    <button onClick={()=>{if(!auth){setShowPin(true);return;} setSelM(m); setS1(1); setS2(0);}}
+                      style={{padding:"6px 18px", borderRadius:"8px", border:"1px solid rgba(232,0,45,0.3)", background:"rgba(232,0,45,0.08)", color:"#E8002D", fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, fontWeight:700, cursor:"pointer", letterSpacing:1}}>
+                      Pronostiquer
+                    </button>
+                  </div>
+                  {auth && (pronos[auth.id]||[]).find(p=>p.matchId===m.id) && (
+                    <div style={{marginTop:6, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:"#00D4FF", textAlign:"center", background:"rgba(0,212,255,0.08)", borderRadius:6, padding:"3px 0"}}>
+                      Mon prono : {(pronos[auth.id]||[]).find(p=>p.matchId===m.id).s1}–{(pronos[auth.id]||[]).find(p=>p.matchId===m.id).s2}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Actus RAF */}
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginTop:20, marginBottom:10, paddingBottom:7, borderBottom:`1px solid ${D.border}`}}>
+                Actualites RAF
+              </div>
+              {RAF.news.map((n,i)=>(
+                <div key={n.id} style={{background:D.card, borderRadius:D.rlg, padding:"13px 15px", display:"flex", gap:12, marginBottom:8,
+                  border:`1px solid ${n.hot?"rgba(232,0,45,0.3)":D.border}`,
+                  borderLeft:`3px solid ${n.hot?"#E8002D":D.border}`}}>
+                  <div style={{fontSize:22, flexShrink:0}}>{n.icon==="fire"?"🔥":n.icon==="goal"?"⚽":n.icon==="glove"?"🧤":n.icon==="cal"?"📅":"📊"}</div>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:4}}>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, letterSpacing:2, color:"#E8002D"}}>RAF LIGUE 2</span>
+                      {n.hot && <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, background:"rgba(232,0,45,0.2)", color:"#ff6b8a", padding:"1px 6px", borderRadius:3, fontWeight:700}}>CHAUD</span>}
+                    </div>
+                    <div style={{fontSize:13, fontWeight:500, lineHeight:1.4, marginBottom:3, color:D.blanc}}>{n.title}</div>
+                    <div style={{fontSize:12, color:"#C0CDE0", lineHeight:1.5}}>{n.summary}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── SIDEBAR ── */}
