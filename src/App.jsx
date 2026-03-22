@@ -50,6 +50,34 @@ const DATA = {
   ],
 };
 
+
+// ── DONNÉES RAF ───────────────────────────────────────
+const RAF = {
+  lastUpdate: "21 mars 2026",
+  classement: { pos:5, pts:43, j:28, v:13, n:14, d:1, bp:38, bc:21 },
+  serie: "14 matchs sans défaite en 2026",
+  recents: [
+    { id:"r28", journee:"J28", home:"Rodez AF", hL:"🔴", away:"Bastia",    aL:"🔵", date:"20 mars", status:"done", score:{h:1,a:1}, result:"N",
+      resume:{ texte:"Le RAF dominait mais Bastia arrache le nul. Arconte ouvre sur penalty (24'), Eickmayer égalise (40'). Braat impérial en 2e mi-temps avec deux arrêts décisifs.", buts:["24' Arconte pen. (RAF)","40' Eickmayer (Bastia)"], cartons:[], motm:"Quentin Braat" }},
+    { id:"r27", journee:"J27", home:"Reims",     hL:"⚪", away:"Rodez AF", aL:"🔴", date:"14 mars", status:"done", score:{h:1,a:2}, result:"V",
+      resume:{ texte:"Superbe victoire 2-1 a Reims chez le 2e du classement. 13e match sans defaite, belle demonstration a l'exterieur.", buts:["Reims 1","RAF 2"], cartons:[], motm:"A preciser" }},
+    { id:"r26", journee:"J26", home:"Rodez AF",  hL:"🔴", away:"Grenoble", aL:"🔵", date:"6 mars",  status:"done", score:{h:1,a:0}, result:"V",
+      resume:{ texte:"Victoire solide 1-0 a domicile. 11e match sans defaite. Belle maitrise defensive de Santini.", buts:["RAF 1"], cartons:[], motm:"A preciser" }},
+  ],
+  prochains: [
+    { id:"r29", journee:"J29", home:"Dunkerque", hL:"🔵", away:"Rodez AF",  aL:"🔴", date:"Ven 3 avr 20h00",  venue:"Marcel-Tribut, Dunkerque", status:"future", score:null },
+    { id:"r30", journee:"J30", home:"Rodez AF",  hL:"🔴", away:"Troyes",    aL:"🔵", date:"Lun 13 avr 20h45", venue:"Paul-Lignon, Rodez",       status:"future", score:null },
+    { id:"r31", journee:"J31", home:"Concarneau",hL:"🔵", away:"Rodez AF",  aL:"🔴", date:"Sam 19 avr 15h00", venue:"Roudourou, Concarneau",     status:"future", score:null },
+  ],
+  news: [
+    { id:1, hot:true,  icon:"fire", title:"14 matchs sans defaite : le RAF en route pour les play-offs",     summary:"Rodez porte sa serie a 14 matchs sans defaite en 2026. 5e a 43 pts, a 2 points seulement du 4e." },
+    { id:2, hot:true,  icon:"goal", title:"Arconte : 10 buts cette saison, meilleur buteur ruthénois",        summary:"Son penalty contre Bastia lui permet d'atteindre 10 buts. Il est le principal danger offensif du RAF." },
+    { id:3, hot:false, icon:"glove",title:"Braat impérial : sa double-parade contre Bastia a sauvé le point",summary:"Deux arrets decisifs sur Zaouai en 2e mi-temps, le gardien ruthénois a ete indispensable." },
+    { id:4, hot:false, icon:"cal",  title:"Prochain match : deplaçement à Dunkerque le 3 avril",             summary:"Dunkerque (8e, 38 pts) recoit le RAF au Marcel-Tribut. Match cle pour la course aux play-offs." },
+    { id:5, hot:false, icon:"chart",title:"Classement : 5e a 43 pts, a 2 pts des play-offs directs",         summary:"Avec 6 journées restantes, Rodez peut encore viser les play-offs. Chaque victoire compte." },
+  ],
+};
+
 const PLAYERS = [
   { id:"seb", name:"Sébastien", emoji:"😎", pin:"1234" },
   { id:"ste", name:"Stéphane",  emoji:"🤓", pin:"5678" },
@@ -282,10 +310,10 @@ export default function App() {
         </div>
 
         <nav style={{display:"flex", gap:3}}>
-          {[["amicaux","🤝 Amicaux"],["actu","📰 Actualité"],["wc","⚽ WC 2026"]].map(([id,lbl])=>(
+          {[["amicaux","🤝 Amicaux"],["actu","📰 Actualité"],["wc","⚽ WC 2026"],["raf","🔴 RAF"]].map(([id,lbl])=>(
             <button key={id} onClick={()=>setMainTab(id)} style={{padding:"7px 14px", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", cursor:"pointer",
-              border:"none", borderBottom:`2px solid ${mainTab===id?D.cyan:"transparent"}`,
-              background:"transparent", color:mainTab===id?D.cyan:D.gris, marginBottom:-1}}>
+              border:"none", borderBottom:`2px solid ${mainTab===id?(id==="raf"?"#E8002D":D.cyan):"transparent"}`,
+              background:"transparent", color:mainTab===id?(id==="raf"?"#E8002D":D.cyan):D.gris, marginBottom:-1}}>
               {lbl}
             </button>
           ))}
@@ -522,13 +550,24 @@ export default function App() {
                   Connecté : {auth.emoji} <strong style={{color:D.blanc}}>{auth.name}</strong>
                 </div>
 
-                <select onChange={e=>{const f=DATA.amicaux.find(x=>x.id===e.target.value)||null;setSelM(f);setS1(1);setS2(0);}}
+                <select onChange={e=>{
+                    const allM=[...DATA.amicaux,...RAF.prochains];
+                    const f=allM.find(x=>x.id===e.target.value)||null;
+                    setSelM(f);setS1(1);setS2(0);
+                  }}
                   value={selM?.id||""}
                   style={{width:"100%", padding:"8px 10px", borderRadius:D.rmd, border:`1px solid ${D.border}`, background:"rgba(255,255,255,0.05)", color:D.blanc, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, marginBottom:12, outline:"none"}}>
                   <option value="" style={{background:"#0D1B3E"}}>— Sélectionner un match —</option>
-                  {future.map(f=>(
-                    <option key={f.id} value={f.id} style={{background:"#0D1B3E"}}>{f.hL} {f.home} vs {f.away} {f.aL} · {f.date}</option>
-                  ))}
+                  <optgroup label="Amicaux WC 2026" style={{background:"#0D1B3E"}}>
+                    {future.map(f=>(
+                      <option key={f.id} value={f.id} style={{background:"#0D1B3E"}}>{f.hL} {f.home} vs {f.away} {f.aL} · {f.date}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="RAF - Ligue 2" style={{background:"#0D1B3E"}}>
+                    {RAF.prochains.map(f=>(
+                      <option key={f.id} value={f.id} style={{background:"#0D1B3E"}}>{f.hL} {f.home} vs {f.away} {f.aL} · {f.date}</option>
+                    ))}
+                  </optgroup>
                 </select>
 
                 {selM && (
@@ -562,7 +601,7 @@ export default function App() {
                       const r=results[p.matchId];
                       const ex=r&&p.s1===r.s1&&p.s2===r.s2;
                       const ok=r&&Math.sign(p.s1-p.s2)===Math.sign(r.s1-r.s2);
-                      const m=DATA.amicaux.find(f=>f.id===p.matchId);
+                      const m=[...DATA.amicaux,...RAF.prochains,...RAF.recents].find(f=>f.id===p.matchId);
                       return(
                         <div key={p.matchId} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 0", borderTop:`1px solid rgba(255,255,255,0.05)`, fontSize:12}}>
                           <span style={{color:D.gris, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:140}}>
