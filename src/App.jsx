@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { db, ref, set, onValue } from "./firebase.js";
-
 // ══════════════════════════════════════════════════════
 //  DONNÉES — MAJ par Claude via recherche web
 //  Dernière MAJ : 21 mars 2026
