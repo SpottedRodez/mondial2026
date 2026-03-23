@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { db, ref, set, onValue } from "./firebase.js";
 
 // ══════════════════════════════════════════════════════
@@ -113,6 +113,17 @@ const D = {
   rlg:   "14px",
 };
 
+// ── HOOK MOBILE ──────────────────────────────────────
+function useIsMobile() {
+  const [mobile, setMobile] = React.useState(window.innerWidth < 768);
+  React.useEffect(() => {
+    const h = () => setMobile(window.innerWidth < 768);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
+  return mobile;
+}
+
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap');
   body { background:${D.bg}; color:${D.blanc}; font-family:'Barlow',sans-serif; }
@@ -124,6 +135,18 @@ const CSS = `
   ::-webkit-scrollbar{width:5px}
   ::-webkit-scrollbar-track{background:${D.bg}}
   ::-webkit-scrollbar-thumb{background:${D.acier};border-radius:3px}
+  .mobile-nav { display:none; }
+  @media (max-width:767px) {
+    .desktop-nav { display:none !important; }
+    .desktop-sidebar { display:none !important; }
+    .mobile-nav { display:flex !important; }
+    .main-grid { grid-template-columns:1fr !important; padding:12px !important; }
+    .hero-flags { display:none !important; }
+    .hero-counters { display:none !important; }
+    .ticker-text { font-size:11px !important; }
+    .header-inner { padding:0 12px !important; }
+    .match-emoji { font-size:32px !important; }
+  }
 `;
 
 // ── COMPOSANT PIN ─────────────────────────────────────
@@ -221,6 +244,7 @@ function TB({ active, onClick, children }) {
 
 // ── APP ───────────────────────────────────────────────
 export default function App() {
+  const isMobile = useIsMobile();
   const [pronos,  setPronos]  = useState({});
   const [ready,   setReady]   = useState(false);
   const [saving,  setSaving]  = useState(false);
@@ -327,18 +351,16 @@ export default function App() {
       </div>
 
       {/* ── HEADER ── */}
-      <header style={{background:"rgba(10,14,26,0.97)", backdropFilter:"blur(20px)", borderBottom:`1px solid ${D.border}`, padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:66, gap:16, position:"sticky", top:0, zIndex:50}}>
-        <div style={{display:"flex", alignItems:"center", gap:12}}>
-          <div style={{width:40, height:40, background:"linear-gradient(135deg,#E8002D,#F5C518)", borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18}}>⚽</div>
-          <div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:20, letterSpacing:2}}>MONDIAL <span style={{color:D.cyan}}>2026</span></div>
-            <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:D.gris, letterSpacing:3}}>AMICAUX · WC 2026 · ACTU · PRONOS</div>
-          </div>
+      <header className="header-inner" style={{background:"rgba(10,14,26,0.97)", backdropFilter:"blur(20px)", borderBottom:`1px solid ${D.border}`, padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:56, gap:12, position:"sticky", top:0, zIndex:50}}>
+        <div style={{display:"flex", alignItems:"center", gap:10}}>
+          <div style={{width:36, height:36, background:"linear-gradient(135deg,#E8002D,#F5C518)", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16}}>⚽</div>
+          <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:18, letterSpacing:2}}>MONDIAL <span style={{color:D.cyan}}>2026</span></div>
         </div>
 
-        <nav style={{display:"flex", gap:3}}>
-          {[["amicaux","🤝 Amicaux"],["actu","📰 Actualité"],["wc","⚽ WC 2026"],["raf","🔴 RAF"]].map(([id,lbl])=>(
-            <button key={id} onClick={()=>setMainTab(id)} style={{padding:"7px 14px", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", cursor:"pointer",
+        {/* Nav desktop */}
+        <nav className="desktop-nav" style={{display:"flex", gap:3}}>
+          {[["amicaux","🤝 Amicaux"],["actu","📰 Actu"],["wc","⚽ WC 2026"],["raf","🔴 RAF"]].map(([id,lbl])=>(
+            <button key={id} onClick={()=>setMainTab(id)} style={{padding:"7px 12px", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", cursor:"pointer",
               border:"none", borderBottom:`2px solid ${mainTab===id?(id==="raf"?"#E8002D":D.cyan):"transparent"}`,
               background:"transparent", color:mainTab===id?(id==="raf"?"#E8002D":D.cyan):D.gris, marginBottom:-1}}>
               {lbl}
@@ -346,26 +368,40 @@ export default function App() {
           ))}
         </nav>
 
-        <div style={{display:"flex", gap:8, alignItems:"center"}}>
-          <button onClick={()=>window.open('https://claude.ai','_blank')} title="Ouvrir Claude pour mettre à jour les scores"
-            style={{padding:"6px 12px", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:1, background:"rgba(0,212,255,0.08)", border:`1px solid ${D.border}`, color:D.cyan, borderRadius:D.rmd, cursor:"pointer"}}>
-            ↻ MAJ ↗
+        <div style={{display:"flex", gap:6, alignItems:"center"}}>
+          <button onClick={()=>window.open('https://claude.ai','_blank')}
+            style={{padding:"5px 10px", fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, background:"rgba(0,212,255,0.08)", border:`1px solid ${D.border}`, color:D.cyan, borderRadius:D.rmd, cursor:"pointer"}}>
+            ↻ MAJ
           </button>
           {auth
-            ? <button onClick={logout} style={{display:"flex", alignItems:"center", gap:7, padding:"6px 14px", borderRadius:20, border:`1px solid rgba(0,232,122,0.4)`, background:"rgba(0,232,122,0.08)", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, color:D.vert, cursor:"pointer", letterSpacing:1}}>
-                <span style={{width:6, height:6, borderRadius:"50%", background:D.vert, animation:"pulse 1.5s infinite", display:"inline-block"}} />
-                {auth.emoji} {auth.name} <span style={{opacity:.4}}>✕</span>
+            ? <button onClick={logout} style={{display:"flex", alignItems:"center", gap:5, padding:"5px 10px", borderRadius:16, border:`1px solid rgba(0,232,122,0.4)`, background:"rgba(0,232,122,0.08)", fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, color:D.vert, cursor:"pointer"}}>
+                <span style={{width:5, height:5, borderRadius:"50%", background:D.vert, animation:"pulse 1.5s infinite", display:"inline-block"}} />
+                {auth.emoji} {isMobile ? "" : auth.name}
               </button>
             : null
           }
           {live.length > 0 && (
-            <div style={{display:"flex", alignItems:"center", gap:6, padding:"6px 12px", border:`1px solid rgba(0,232,122,0.3)`, borderRadius:20, background:"rgba(0,232,122,0.07)", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:D.vert}}>
-              <span style={{width:6, height:6, borderRadius:"50%", background:D.vert, animation:"pulse 1.5s infinite", display:"inline-block"}} />
-              {live.length} LIVE
+            <div style={{display:"flex", alignItems:"center", gap:5, padding:"5px 10px", border:`1px solid rgba(0,232,122,0.3)`, borderRadius:16, background:"rgba(0,232,122,0.07)", fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, color:D.vert}}>
+              <span style={{width:5, height:5, borderRadius:"50%", background:D.vert, animation:"pulse 1.5s infinite", display:"inline-block"}} />
+              LIVE
             </div>
           )}
         </div>
       </header>
+
+      {/* ── NAV MOBILE (barre du bas) ── */}
+      <nav className="mobile-nav" style={{position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(10,14,26,0.98)", backdropFilter:"blur(20px)", borderTop:`1px solid ${D.border}`, display:"flex", height:58, paddingBottom:"env(safe-area-inset-bottom)"}}>
+        {[["amicaux","🤝","Amicaux"],["actu","📰","Actu"],["wc","⚽","WC 2026"],["raf","🔴","RAF"],["pronos","🏆","Pronos"]].map(([id,emoji,lbl])=>(
+          <button key={id} onClick={()=>{if(id==="pronos"){setShowPin(p=>!p); setMainTab("amicaux");}else{setMainTab(id); setShowPin(false);}}}
+            style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, border:"none",
+              background: mainTab===id?"rgba(0,212,255,0.08)":"transparent",
+              borderTop: mainTab===id?`2px solid ${id==="raf"?"#E8002D":D.cyan}`:"2px solid transparent",
+              cursor:"pointer"}}>
+            <span style={{fontSize:18}}>{emoji}</span>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, fontWeight:700, letterSpacing:1, color:mainTab===id?(id==="raf"?"#E8002D":D.cyan):D.gris, textTransform:"uppercase"}}>{lbl}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* ── HERO ── */}
       <div style={{background:"linear-gradient(135deg,#0D1B3E 0%,#1A0A2E 40%,#0A1428 100%)", padding:"22px 24px 18px", borderBottom:`1px solid ${D.border}`, position:"relative", overflow:"hidden"}}>
@@ -374,9 +410,9 @@ export default function App() {
           <div>
             <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:40, lineHeight:1, letterSpacing:3}}>Coupe du Monde<br/><span style={{color:D.or}}>FIFA 2026</span></div>
             <div style={{fontSize:13, color:"#C0CDE0", marginTop:6}}>🇺🇸 <strong style={{color:D.cyan}}>USA</strong> · 🇨🇦 <strong style={{color:D.cyan}}>Canada</strong> · 🇲🇽 <strong style={{color:D.cyan}}>Mexique</strong> · 11 juin – 19 juillet 2026</div>
-            <div style={{fontSize:20, display:"flex", gap:5, marginTop:8, flexWrap:"wrap"}}>🇧🇷 🇫🇷 🇩🇪 🇦🇷 🇪🇸 🇵🇹 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇧🇪 🇸🇳 🇯🇵 🇲🇦 🇰🇷 🇲🇽 🇺🇸 🇨🇦 🇺🇾 🇭🇷 🇳🇱 🇨🇴 🇨🇭</div>
+            <div className="hero-flags" style={{fontSize:20, display:"flex", gap:5, marginTop:8, flexWrap:"wrap"}}>🇧🇷 🇫🇷 🇩🇪 🇦🇷 🇪🇸 🇵🇹 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇧🇪 🇸🇳 🇯🇵 🇲🇦 🇰🇷 🇲🇽 🇺🇸 🇨🇦 🇺🇾 🇭🇷 🇳🇱 🇨🇴 🇨🇭</div>
           </div>
-          <div style={{display:"flex", gap:10, marginLeft:"auto", flexShrink:0}}>
+          <div className="hero-counters" style={{display:"flex", gap:10, marginLeft:"auto", flexShrink:0}}>
             {[[String(DATA.amicaux.length),"Amicaux"],[String(future.length),"À venir"],[String(live.length),"En cours"],[String(done.length),"Terminés"]].map(([n,l])=>(
               <div key={l} style={{textAlign:"center", background:"rgba(255,255,255,0.04)", border:`1px solid ${D.border}`, padding:"10px 14px", borderRadius:12}}>
                 <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:28, color:D.or, lineHeight:1}}>{n}</div>
@@ -388,7 +424,7 @@ export default function App() {
       </div>
 
       {/* ── CORPS ── */}
-      <div style={{padding:"20px 24px", display:"grid", gridTemplateColumns:"1fr 320px", gap:20, alignItems:"start"}}>
+      <div className="main-grid" style={{padding:"20px 24px", display:"grid", gridTemplateColumns:"1fr 320px", gap:20, alignItems:"start", paddingBottom: isMobile?"80px":"20px"}}>
 
         {/* Colonne principale */}
         <div>
@@ -635,7 +671,7 @@ export default function App() {
         </div>
 
         {/* ── SIDEBAR ── */}
-        <div style={{display:"flex", flexDirection:"column", gap:16}}>
+        <div className="desktop-sidebar" style={{display:"flex", flexDirection:"column", gap:16}}>
 
           {/* Classement */}
           <div style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, overflow:"hidden"}}>
@@ -818,6 +854,67 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      {/* ── PANEL PRONOS MOBILE ── */}
+      {isMobile && showPin && (
+        <div style={{position:"fixed", bottom:58, left:0, right:0, zIndex:90, background:"rgba(10,14,26,0.98)", backdropFilter:"blur(20px)", borderTop:`1px solid ${D.border}`, padding:"16px", maxHeight:"70vh", overflowY:"auto"}}>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12}}>
+            <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, fontWeight:700, color:D.or, letterSpacing:1}}>🎯 PRONOS</span>
+            <button onClick={()=>setShowPin(false)} style={{background:"none", border:"none", color:D.gris, fontSize:18, cursor:"pointer"}}>✕</button>
+          </div>
+          {!auth
+            ? <PinPanel onSuccess={handleLogin} onCancel={()=>setShowPin(false)} />
+            : <>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, color:D.gris, marginBottom:10}}>
+                  Connecté : {auth.emoji} <strong style={{color:D.blanc}}>{auth.name}</strong>
+                  <button onClick={logout} style={{marginLeft:10, background:"none", border:"none", color:D.rouge, cursor:"pointer", fontSize:11}}>Déconnexion</button>
+                </div>
+                <select onChange={e=>{const allM=[...DATA.amicaux,...RAF.prochains];const f=allM.find(x=>x.id===e.target.value)||null;setSelM(f);setS1(1);setS2(0);}}
+                  value={selM?.id||""}
+                  style={{width:"100%", padding:"10px", borderRadius:D.rmd, border:`1px solid ${D.border}`, background:"rgba(255,255,255,0.05)", color:D.blanc, fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, marginBottom:12, outline:"none"}}>
+                  <option value="" style={{background:"#0D1B3E"}}>— Choisir un match —</option>
+                  <optgroup label="Amicaux WC 2026" style={{background:"#0D1B3E"}}>
+                    {future.map(f=>(<option key={f.id} value={f.id} style={{background:"#0D1B3E"}}>{f.hL} {f.home} vs {f.away} {f.aL}</option>))}
+                  </optgroup>
+                  <optgroup label="RAF - Ligue 2" style={{background:"#0D1B3E"}}>
+                    {RAF.prochains.map(f=>(<option key={f.id} value={f.id} style={{background:"#0D1B3E"}}>{f.home} vs {f.away}</option>))}
+                  </optgroup>
+                </select>
+                {selM && (
+                  <>
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"center", gap:12, marginBottom:12, padding:"12px", background:"rgba(255,255,255,0.03)", borderRadius:D.rmd}}>
+                      <div style={{textAlign:"center"}}><div style={{fontSize:28}}>{selM.hL}</div><div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:D.gris}}>{selM.home}</div></div>
+                      <input type="number" min={0} max={20} value={s1} onChange={e=>setS1(e.target.value)}
+                        style={{width:48, height:48, textAlign:"center", fontFamily:"'Bebas Neue',sans-serif", fontSize:24, borderRadius:D.rmd, border:`1px solid rgba(245,197,24,0.4)`, background:"rgba(255,255,255,0.05)", color:D.blanc, outline:"none"}}/>
+                      <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:18, color:D.gris}}>–</span>
+                      <input type="number" min={0} max={20} value={s2} onChange={e=>setS2(e.target.value)}
+                        style={{width:48, height:48, textAlign:"center", fontFamily:"'Bebas Neue',sans-serif", fontSize:24, borderRadius:D.rmd, border:`1px solid rgba(245,197,24,0.4)`, background:"rgba(255,255,255,0.05)", color:D.blanc, outline:"none"}}/>
+                      <div style={{textAlign:"center"}}><div style={{fontSize:28}}>{selM.aL}</div><div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:D.gris}}>{selM.away}</div></div>
+                    </div>
+                    <button onClick={valider} style={{width:"100%", padding:"12px", borderRadius:D.rmd, border:"none", background:`linear-gradient(135deg,${D.or},#e0a800)`, color:"#000", fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, letterSpacing:2, cursor:"pointer"}}>
+                      ✅ VALIDER
+                    </button>
+                  </>
+                )}
+                {/* Classement mobile */}
+                <div style={{marginTop:16}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, color:D.or, letterSpacing:1, marginBottom:8}}>🏆 CLASSEMENT</div>
+                  {board.map((p,i)=>(
+                    <div key={p.id} style={{display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i<2?`1px solid rgba(255,255,255,0.05)`:"none"}}>
+                      <div style={{width:20, height:20, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Bebas Neue',sans-serif", fontSize:11,
+                        background:i===0?"linear-gradient(135deg,#FFD700,#FFA500)":i===1?"linear-gradient(135deg,#C0C0C0,#888)":"linear-gradient(135deg,#CD7F32,#8B4513)",
+                        color:i===2?"#fff":"#000"}}>{i+1}</div>
+                      <span style={{fontSize:18}}>{p.emoji}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, flex:1}}>{p.name}</span>
+                      <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:20, color:D.or}}>{p.pt}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:D.gris}}>pts</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+          }
+        </div>
+      )}
 
       {/* ── MODAL RÉSUMÉ MATCH ── */}
       {modalMatch && (
