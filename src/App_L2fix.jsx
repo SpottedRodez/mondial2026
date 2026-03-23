@@ -249,7 +249,12 @@ export default function App() {
     // Ecoute le classement L2
     const unsubL2 = onValue(ref(db, "classementL2"), snap => {
       const data = snap.val();
-      if (data) setClassL2(Array.isArray(data) ? data : Object.values(data));
+      if (data) {
+        const arr = Array.isArray(data) ? data : Object.values(data);
+        const filtered = arr.filter(t => t && t.team);
+        console.log("L2 data received:", filtered.length, "teams");
+        setClassL2(filtered);
+      }
     });
 
     // Ecoute les stats RAF
