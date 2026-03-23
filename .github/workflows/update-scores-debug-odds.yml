@@ -180,54 +180,6 @@ jobs:
                   newHighlights[rm.id] = videoId;
                   console.log(`RAF Highlight ${rm.id}: ${videoId}`);
                 }
-                await new Promise(r => setTimeout(r, 500));
-              }
-            }
-
-            // ── Classement L2 ──────────────────────────
-            let rows = [];
-            for(const season of [2024, 2025]) {
-              if(rows.length === 0) {
-                const data = await api(`standings?league=${L2_ID}&season=${season}`);
-                rows = data[0]?.league?.standings?.[0] || [];
-              }
-            }
-            const classL2 = rows.map(t=>({
-              pos:t.rank, team:t.team.name, logo:t.team.logo,
-              pts:t.points, j:t.all.played, v:t.all.win, n:t.all.draw, d:t.all.lose,
-              bp:t.all.goals.for, bc:t.all.goals.against, diff:t.goalsDiff, isRAF:t.team.id===RAF_ID
-            }));
-            const raf = rows.find(t=>t.team.id===RAF_ID);
-            const rafStats = raf ? {
-              pos:raf.rank, pts:raf.points, j:raf.all.played,
-              v:raf.all.win, n:raf.all.draw, d:raf.all.lose,
-              bp:raf.all.goals.for, bc:raf.all.goals.against
-            } : null;
-            console.log(`L2: ${classL2.length} équipes, RAF: ${rafStats?.pos}e`);
-            console.log(`Highlights total: ${Object.keys(newHighlights).length}`);
-
-            // ── Ecriture Firebase ──────────────────────
-            const now = new Date().toLocaleString("fr-FR",{timeZone:"Europe/Paris"});
-            await Promise.all([
-              amicaux.length   ? fbSet(token, "amicaux",        amicaux)              : Promise.resolve(),
-              fbSet(token, "raf/recents",    rec.map(f=>toM(f,"done"))),
-              fbSet(token, "raf/prochains",  nxt.map(f=>toM(f,"next"))),
-              rafStats         ? fbSet(token, "raf/classement",  rafStats)             : Promise.resolve(),
-              classL2.length   ? fbSet(token, "classementL2",    classL2)             : Promise.resolve(),
-              Object.keys(newHighlights).length ? fbSet(token, "highlights", newHighlights) : Promise.resolve(),
-              fbSet(token, "meta", {lastUpdate:now}),
-            ]);
-            console.log("=== DONE ===", now);
-          }
-
-          main().catch(e => { console.error("ERROR:", e.message); process.exit(1); });
-          SCRIPT
-        env:
-          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
-          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-
   odds:
     runs-on: ubuntu-latest
     steps:
@@ -273,23 +225,40 @@ jobs:
             console.log("=== ODDS START ===");
             const token = await getToken();
 
-            // Récupère les sports disponibles
-            // soccer_france_ligue_2 et soccer_international_friendlies
-            const sports = ["soccer_france_ligue_2", "soccer_international_friendlies"];
+            // Liste tous les sports disponibles
+            console.log("Fetching available sports...");
+            const r = await fetch(`https://api.the-odds-api.com/v4/sports/?apiKey=${ODDS_KEY}`);
+            console.log("Remaining:", r.headers.get("x-requests-remaining"));
+            const sports = await r.json();
+
+            // Filtre les sports de foot
+            const football = sports.filter(s =>
+              s.key.includes("soccer") || s.key.includes("football")
+            );
+            console.log("Football sports available:");
+            football.forEach(s => console.log(` - ${s.key}: ${s.title} (active: ${s.active})`));
+
+            // Cherche Ligue 2 et amicaux
+            const targets = football.filter(s =>
+              s.key.includes("ligue") ||
+              s.key.includes("friendly") ||
+              s.key.includes("france") ||
+              s.key.includes("amical")
+            );
+            console.log("\nTarget sports:");
+            targets.forEach(s => console.log(` → ${s.key}`));
+
             const odds = {};
-
-            for (const sport of sports) {
-              console.log(`Fetching odds for ${sport}...`);
-              const url = `https://api.the-odds-api.com/v4/sports/${sport}/odds/?apiKey=${ODDS_KEY}&regions=eu&markets=h2h&oddsFormat=decimal`;
-              const r = await fetch(url);
-              const remaining = r.headers.get("x-requests-remaining");
-              console.log(`Requests remaining: ${remaining}`);
-              if (!r.ok) { console.log(`Error ${r.status}`); continue; }
-              const games = await r.json();
-              console.log(`${sport}: ${games.length} matchs`);
-
+            for (const sport of targets.slice(0, 3)) { // max 3 pour économiser les appels
+              console.log(`\nFetching ${sport.key}...`);
+              const gr = await fetch(
+                `https://api.the-odds-api.com/v4/sports/${sport.key}/odds/?apiKey=${ODDS_KEY}&regions=eu&markets=h2h&oddsFormat=decimal`
+              );
+              console.log("Remaining:", gr.headers.get("x-requests-remaining"));
+              if (!gr.ok) { console.log("Error:", gr.status); continue; }
+              const games = await gr.json();
+              console.log(`${games.length} matchs trouvés`);
               for (const g of games) {
-                // Prend les cotes du premier bookmaker dispo
                 const bk = g.bookmakers?.[0];
                 if (!bk) continue;
                 const h2h = bk.markets?.find(m => m.key === "h2h");
@@ -298,22 +267,16 @@ jobs:
                 const home = outcomes.find(o => o.name === g.home_team);
                 const away = outcomes.find(o => o.name === g.away_team);
                 const draw = outcomes.find(o => o.name === "Draw");
-
-                // Clé = home_away normalisé
-                const key = `${g.home_team}_${g.away_team}`.replace(/\s+/g,"-").toLowerCase().slice(0,60);
+                const key = `${g.home_team}_${g.away_team}`.replace(/[^a-zA-Z0-9_]/g,"-").slice(0,60);
                 odds[key] = {
-                  home:  home?.price  || null,
-                  draw:  draw?.price  || null,
-                  away:  away?.price  || null,
-                  homeTeam: g.home_team,
-                  awayTeam: g.away_team,
-                  commence: g.commence_time,
-                  id: g.id,
+                  home: home?.price||null, draw: draw?.price||null, away: away?.price||null,
+                  homeTeam: g.home_team, awayTeam: g.away_team, commence: g.commence_time,
                 };
+                console.log(`  ${g.home_team} vs ${g.away_team}: ${home?.price} / ${draw?.price} / ${away?.price}`);
               }
             }
 
-            console.log(`Total cotes: ${Object.keys(odds).length} matchs`);
+            console.log(`\nTotal cotes: ${Object.keys(odds).length} matchs`);
             if (Object.keys(odds).length > 0) {
               await fbSet(token, "odds", odds);
             }
