@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { db, ref, set, onValue } from "./firebase.js";
+
 // ══════════════════════════════════════════════════════
 //  DONNÉES — MAJ par Claude via recherche web
 //  Dernière MAJ : 21 mars 2026
@@ -233,18 +234,35 @@ export default function App() {
   const [s2,      setS2]      = useState(0);
   const [toast,   setToast]   = useState(null);
   const tRef = useRef(null);
+  const [classL2, setClassL2] = useState([]);
+  const [rafFb,   setRafFb]   = useState(null);
+  const [lastUpdateFb, setLastUpdateFb] = useState(null);
 
   useEffect(() => {
-    const pronosRef = ref(db, "pronos");
-    const unsub = onValue(pronosRef, (snap) => {
+    // Ecoute les pronos en temps reel
+    const unsubPronos = onValue(ref(db, "pronos"), snap => {
       const data = snap.val();
       if (data) setPronos(data);
       setReady(true);
-    }, () => {
-      try { const s=localStorage.getItem(SK); if(s) setPronos(JSON.parse(s)); } catch{}
-      setReady(true);
+    }, () => { setReady(true); });
+
+    // Ecoute le classement L2
+    const unsubL2 = onValue(ref(db, "classementL2"), snap => {
+      const data = snap.val();
+      if (data) setClassL2(Array.isArray(data) ? data : Object.values(data));
     });
-    return () => unsub();
+
+    // Ecoute les stats RAF
+    const unsubRaf = onValue(ref(db, "raf/classement"), snap => {
+      if (snap.val()) setRafFb(snap.val());
+    });
+
+    // Ecoute lastUpdate
+    const unsubMeta = onValue(ref(db, "meta/lastUpdate"), snap => {
+      if (snap.val()) setLastUpdateFb(snap.val());
+    });
+
+    return () => { unsubPronos(); unsubL2(); unsubRaf(); unsubMeta(); };
   }, []);
 
   const results = {};
@@ -258,30 +276,24 @@ export default function App() {
   function handleLogin(player) { setAuth(player); setShowPin(false); flash(`${player.emoji} ${player.name} connecté`); }
   function logout() { setAuth(null); setShowPin(false); setSelM(null); flash("Déconnecté"); }
 
-  async function valider() {
+  function valider() {
     if (!auth||!selM) return;
     const prev=(pronos[auth.id]||[]).filter(p=>p.matchId!==selM.id);
     const upd={...pronos,[auth.id]:[...prev,{matchId:selM.id,s1:+s1,s2:+s2,ts:Date.now()}]};
     setPronos(upd);
-    try {
-      await set(ref(db, "pronos"), upd);
-      localStorage.setItem(SK, JSON.stringify(upd));
-      setSelM(null);
-      flash(`${auth.emoji} ${selM.home} ${s1}–${s2} ${selM.away} sauvegardé ✓`);
-    } catch(e) { flash("Erreur sauvegarde: " + e.message); }
+    set(ref(db,"pronos"), upd)
+      .then(()=>{ setSelM(null); flash(`${auth.emoji} ${selM.home} ${s1}–${s2} ${selM.away} sauvegardé ✓`); })
+      .catch(()=>flash("Erreur de sauvegarde"));
   }
 
   const [confirmReset, setConfirmReset] = useState(false);
 
-  async function resetPronos() {
+  function resetPronos() {
     const empty = {};
     setPronos(empty);
-    try {
-      await set(ref(db, "pronos"), empty);
-      localStorage.setItem(SK, JSON.stringify(empty));
-    } catch(e) { console.error(e); }
-    setConfirmReset(false);
-    flash("Classement remis a zero pour la WC 2026 !");
+    set(ref(db,"pronos"), empty)
+      .then(()=>{ setConfirmReset(false); flash("🏆 Classement remis à zéro pour la WC 2026 !"); })
+      .catch(()=>{ setConfirmReset(false); flash("Reset effectué"); });
   }
 
   function flash(msg) { setToast(msg); clearTimeout(tRef.current); tRef.current=setTimeout(()=>setToast(null),3000); }
@@ -469,10 +481,10 @@ export default function App() {
                   </div>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:22, letterSpacing:2, marginBottom:5}}>
-                      <span style={{color:"#E8002D"}}>{RAF.classement.pos}e</span> en Ligue 2 — {RAF.classement.pts} pts
+                      <span style={{color:"#E8002D"}}>{(rafFb||RAF.classement).pos}e</span> en Ligue 2 — {(rafFb||RAF.classement).pts} pts
                     </div>
                     <div style={{fontSize:13, color:"#C0CDE0", marginBottom:4}}>
-                      {RAF.classement.j}J · {RAF.classement.v}V {RAF.classement.n}N {RAF.classement.d}D · {RAF.classement.bp} buts pour · {RAF.classement.bc} contre
+                      {(rafFb||RAF.classement).j}J · {(rafFb||RAF.classement).v}V {(rafFb||RAF.classement).n}N {(rafFb||RAF.classement).d}D · {(rafFb||RAF.classement).bp} buts pour · {(rafFb||RAF.classement).bc} contre
                     </div>
                     <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, color:"#F5C518"}}>{RAF.serie}</div>
                   </div>
@@ -555,6 +567,44 @@ export default function App() {
                   )}
                 </div>
               ))}
+
+              {/* Classement Ligue 2 */}
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginTop:20, marginBottom:10, paddingBottom:7, borderBottom:`1px solid ${D.border}`}}>
+                🏆 Classement Ligue 2
+              </div>
+              {classL2.length > 0 ? (
+                <div style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, overflow:"hidden", marginBottom:20}}>
+                  {/* Header tableau */}
+                  <div style={{display:"grid", gridTemplateColumns:"28px 1fr 36px 36px 36px 36px 36px 36px 40px", gap:4, padding:"8px 12px", borderBottom:`1px solid ${D.border}`, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, letterSpacing:1, color:D.gris, textTransform:"uppercase"}}>
+                    <span>#</span><span>Équipe</span><span style={{textAlign:"center"}}>J</span><span style={{textAlign:"center"}}>V</span><span style={{textAlign:"center"}}>N</span><span style={{textAlign:"center"}}>D</span><span style={{textAlign:"center"}}>BP</span><span style={{textAlign:"center"}}>BC</span><span style={{textAlign:"center"}}>Pts</span>
+                  </div>
+                  {classL2.map((t,i)=>(
+                    <div key={i} style={{display:"grid", gridTemplateColumns:"28px 1fr 36px 36px 36px 36px 36px 36px 40px", gap:4, padding:"7px 12px",
+                      borderBottom: i<classL2.length-1 ? `1px solid rgba(255,255,255,0.04)` : "none",
+                      background: t.isRAF ? "rgba(232,0,45,0.08)" : "transparent",
+                      borderLeft: t.isRAF ? "3px solid #E8002D" : "3px solid transparent",
+                    }}>
+                      <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:14, color: i<2?"#00E87A": i<4?"#F5C518": i>=classL2.length-3?"#E8002D":D.gris}}>{t.pos}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight: t.isRAF?700:400, color: t.isRAF?"#E8002D":D.blanc, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{t.isRAF?"🔴 ":""}{t.team}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, textAlign:"center", color:D.gris}}>{t.j}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, textAlign:"center", color:"#00E87A"}}>{t.v}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, textAlign:"center", color:D.gris}}>{t.n}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, textAlign:"center", color:"#E8002D"}}>{t.d}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, textAlign:"center", color:D.gris}}>{t.bp}</span>
+                      <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, textAlign:"center", color:D.gris}}>{t.bc}</span>
+                      <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:16, textAlign:"center", color: t.isRAF?"#E8002D":D.blanc, fontWeight: t.isRAF?700:400}}>{t.pts}</span>
+                    </div>
+                  ))}
+                  <div style={{padding:"6px 12px", borderTop:`1px solid ${D.border}`, display:"flex", gap:12, flexWrap:"wrap"}}>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:"#00E87A"}}>■ Montée directe</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:"#F5C518"}}>■ Play-offs</span>
+                    <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:"#E8002D"}}>■ Relégation</span>
+                    {lastUpdateFb && <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:D.gris, marginLeft:"auto"}}>MAJ {lastUpdateFb}</span>}
+                  </div>
+                </div>
+              ) : (
+                <div style={{padding:"16px", textAlign:"center", color:D.gris, fontSize:13, marginBottom:20}}>Classement en cours de chargement…</div>
+              )}
 
               {/* Actus RAF */}
               <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginTop:20, marginBottom:10, paddingBottom:7, borderBottom:`1px solid ${D.border}`}}>
