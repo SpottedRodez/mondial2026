@@ -258,9 +258,10 @@ export default function App() {
   const [s2,      setS2]      = useState(0);
   const [toast,   setToast]   = useState(null);
   const tRef = useRef(null);
-  const [classL2, setClassL2] = useState([]);
-  const [rafFb,   setRafFb]   = useState(null);
+  const [classL2,      setClassL2]      = useState([]);
+  const [rafFb,        setRafFb]        = useState(null);
   const [lastUpdateFb, setLastUpdateFb] = useState(null);
+  const [highlights,   setHighlights]   = useState({});
 
   useEffect(() => {
     // Ecoute les pronos en temps reel
@@ -291,7 +292,12 @@ export default function App() {
       if (snap.val()) setLastUpdateFb(snap.val());
     });
 
-    return () => { unsubPronos(); unsubL2(); unsubRaf(); unsubMeta(); };
+    // Ecoute les highlights YouTube
+    const unsubHL = onValue(ref(db, "highlights"), snap => {
+      if (snap.val()) setHighlights(snap.val());
+    });
+
+    return () => { unsubPronos(); unsubL2(); unsubRaf(); unsubMeta(); unsubHL(); };
   }, []);
 
   const results = {};
