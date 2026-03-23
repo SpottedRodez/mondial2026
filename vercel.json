@@ -1,11 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "crons": [
-    {
-      "path": "/api/update-scores",
-      "schedule": "*/15 * * * *"
-    }
-  ]
+  "installCommand": "npm install"
 }
