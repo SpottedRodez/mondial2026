@@ -96,6 +96,42 @@ function calcPts(pronos, results) {
   return{p,c,e};
 }
 
+function calcStats(pronos, results) {
+  let pts=0, bons=0, exacts=0, nuls=0;
+  let serie=0, meilleureSerie=0, serieEnCours=0;
+  const history = [];
+  const allMatchIds = Object.keys(results);
+  (pronos||[]).forEach(x=>{
+    const r=results[x.matchId]; if(!r) return;
+    const ex=x.s1===r.s1&&x.s2===r.s2;
+    const ok=Math.sign(x.s1-x.s2)===Math.sign(r.s1-r.s2);
+    const pt = ex?5:ok?3:0;
+    pts+=pt; if(pt>0){bons++;serieEnCours++;}else{serieEnCours=0;}
+    if(ex) exacts++;
+    if(pt===0) nuls++;
+    meilleureSerie=Math.max(meilleureSerie,serieEnCours);
+    history.push({matchId:x.matchId,s1:x.s1,s2:x.s2,r,pt,ex,ok});
+  });
+  const joues=history.length;
+  const taux=joues>0?Math.round(bons/joues*100):0;
+  return{pts,bons,exacts,nuls,joues,taux,meilleureSerie,history};
+}
+
+// ── HELPER COTES ─────────────────────────────────────
+function getOddsForMatch(odds, home, away) {
+  if (!odds || !home || !away) return null;
+  // Cherche par nom normalisé
+  const normalize = s => s.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  const key = Object.keys(odds).find(k => {
+    const o = odds[k];
+    return (normalize(o.homeTeam||"").includes(normalize(home).slice(0,5)) ||
+            normalize(home).includes(normalize(o.homeTeam||"").slice(0,5))) &&
+           (normalize(o.awayTeam||"").includes(normalize(away).slice(0,5)) ||
+            normalize(away).includes(normalize(o.awayTeam||"").slice(0,5)));
+  });
+  return key ? odds[key] : null;
+}
+
 // ── PALETTE DARK NÉON ──────────────────────────────────
 const D = {
   bg:    "#0A0E1A",
@@ -262,6 +298,8 @@ export default function App() {
   const [rafFb,        setRafFb]        = useState(null);
   const [lastUpdateFb, setLastUpdateFb] = useState(null);
   const [highlights,   setHighlights]   = useState({});
+  const [statsPlayer,  setStatsPlayer]  = useState(null);
+  const [odds,         setOdds]         = useState({});
 
   useEffect(() => {
     // Ecoute les pronos en temps reel
@@ -297,7 +335,12 @@ export default function App() {
       if (snap.val()) setHighlights(snap.val());
     });
 
-    return () => { unsubPronos(); unsubL2(); unsubRaf(); unsubMeta(); unsubHL(); };
+    // Ecoute les cotes
+    const unsubOdds = onValue(ref(db, "odds"), snap => {
+      if (snap.val()) setOdds(snap.val());
+    });
+
+    return () => { unsubPronos(); unsubL2(); unsubRaf(); unsubMeta(); unsubHL(); unsubOdds(); };
   }, []);
 
   const results = {};
@@ -333,9 +376,14 @@ export default function App() {
 
   function flash(msg) { setToast(msg); clearTimeout(tRef.current); tRef.current=setTimeout(()=>setToast(null),3000); }
 
-  const future = DATA.amicaux.filter(f=>f.status==="future");
-  const live   = DATA.amicaux.filter(f=>f.status==="live");
-  const done   = DATA.amicaux.filter(f=>f.status==="done");
+  // Injecte les cotes dans les matchs
+  const amicauxWithOdds = DATA.amicaux.map(f => ({
+    ...f,
+    odds: getOddsForMatch(odds, f.home, f.away)
+  }));
+  const future = amicauxWithOdds.filter(f=>f.status==="future");
+  const live   = amicauxWithOdds.filter(f=>f.status==="live");
+  const done   = amicauxWithOdds.filter(f=>f.status==="done");
 
   const grouped = {};
   future.forEach(f => { const d=f.date.split("·")[0].trim(); if(!grouped[d])grouped[d]=[]; grouped[d].push(f); });
@@ -365,7 +413,7 @@ export default function App() {
 
         {/* Nav desktop */}
         <nav className="desktop-nav" style={{display:"flex", gap:3}}>
-          {[["amicaux","🤝 Amicaux"],["actu","📰 Actu"],["wc","⚽ WC 2026"],["raf","🔴 RAF"]].map(([id,lbl])=>(
+          {[["amicaux","🤝 Amicaux"],["actu","📰 Actu"],["wc","⚽ WC 2026"],["raf","🔴 RAF"],["stats","📊 Stats"]].map(([id,lbl])=>(
             <button key={id} onClick={()=>setMainTab(id)} style={{padding:"7px 12px", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, letterSpacing:1, textTransform:"uppercase", cursor:"pointer",
               border:"none", borderBottom:`2px solid ${mainTab===id?(id==="raf"?"#E8002D":D.cyan):"transparent"}`,
               background:"transparent", color:mainTab===id?(id==="raf"?"#E8002D":D.cyan):D.gris, marginBottom:-1}}>
@@ -397,7 +445,7 @@ export default function App() {
 
       {/* ── NAV MOBILE (barre du bas) ── */}
       <nav className="mobile-nav" style={{position:"fixed", bottom:0, left:0, right:0, zIndex:100, background:"rgba(10,14,26,0.98)", backdropFilter:"blur(20px)", borderTop:`1px solid ${D.border}`, display:"flex", height:58, paddingBottom:"env(safe-area-inset-bottom)"}}>
-        {[["amicaux","🤝","Amicaux"],["actu","📰","Actu"],["wc","⚽","WC 2026"],["raf","🔴","RAF"],["pronos","🏆","Pronos"]].map(([id,emoji,lbl])=>(
+        {[["amicaux","🤝","Amicaux"],["actu","📰","Actu"],["raf","🔴","RAF"],["stats","📊","Stats"],["pronos","🏆","Pronos"]].map(([id,emoji,lbl])=>(
           <button key={id} onClick={()=>{if(id==="pronos"){setShowPin(p=>!p); setMainTab("amicaux");}else{setMainTab(id); setShowPin(false);}}}
             style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, border:"none",
               background: mainTab===id?"rgba(0,212,255,0.08)":"transparent",
@@ -675,6 +723,161 @@ export default function App() {
             </div>
           )}
         </div>
+
+          {/* ── STATS ── */}
+          {mainTab==="stats" && (
+            <div>
+              {/* Header stats */}
+              <div style={{background:"linear-gradient(135deg,rgba(0,212,255,0.06),rgba(13,27,62,0.9))", border:`1px solid rgba(0,212,255,0.3)`, borderRadius:D.rlg, padding:"16px 20px", marginBottom:20, textAlign:"center"}}>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:28, letterSpacing:3, marginBottom:4}}>📊 STATS <span style={{color:D.cyan}}>PRONOS</span></div>
+                <div style={{fontSize:13, color:D.gris}}>Clique sur un joueur pour voir ses stats détaillées</div>
+              </div>
+
+              {/* Sélection joueur */}
+              <div style={{display:"flex", gap:10, marginBottom:20, justifyContent:"center"}}>
+                {PLAYERS.map(p=>(
+                  <button key={p.id} onClick={()=>setStatsPlayer(statsPlayer?.id===p.id?null:p)}
+                    style={{flex:1, padding:"12px 8px", borderRadius:D.rlg, cursor:"pointer", textAlign:"center",
+                      border:`1px solid ${statsPlayer?.id===p.id?D.cyan:D.border}`,
+                      background:statsPlayer?.id===p.id?"rgba(0,212,255,0.1)":D.card}}>
+                    <div style={{fontSize:28, marginBottom:4}}>{p.emoji}</div>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700, color:statsPlayer?.id===p.id?D.cyan:D.blanc}}>{p.name}</div>
+                    <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:20, color:D.or, marginTop:2}}>
+                      {calcPts(pronos[p.id], results).p} pts
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Stats détaillées du joueur sélectionné */}
+              {statsPlayer && (()=>{
+                const st = calcStats(pronos[statsPlayer.id], results);
+                const allMatchs = [...DATA.amicaux, ...RAF.prochains, ...RAF.recents];
+                return (
+                  <div style={{animation:"fadeIn .3s ease"}}>
+                    {/* Carte principale */}
+                    <div style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, padding:"18px", marginBottom:14}}>
+                      <div style={{display:"flex", alignItems:"center", gap:14, marginBottom:16}}>
+                        <div style={{fontSize:40}}>{statsPlayer.emoji}</div>
+                        <div>
+                          <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:26, letterSpacing:2}}>{statsPlayer.name}</div>
+                          <div style={{fontSize:12, color:D.gris}}>{st.joues} pronostic{st.joues>1?"s":""} joué{st.joues>1?"s":""}</div>
+                        </div>
+                        <div style={{marginLeft:"auto", textAlign:"center"}}>
+                          <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:42, color:D.or, lineHeight:1}}>{st.pts}</div>
+                          <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, color:D.gris, letterSpacing:1}}>POINTS</div>
+                        </div>
+                      </div>
+
+                      {/* Grille de stats */}
+                      <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8}}>
+                        {[
+                          ["🎯","Taux",`${st.taux}%`,D.cyan],
+                          ["✅","Exacts",st.exacts,D.vert],
+                          ["🔥","Meilleure série",st.meilleureSerie,D.or],
+                          ["❌","Manqués",st.nuls,"#ff6b8a"],
+                        ].map(([ic,lbl,val,col])=>(
+                          <div key={lbl} style={{background:"rgba(255,255,255,0.04)", border:`1px solid rgba(255,255,255,0.06)`, borderRadius:D.rmd, padding:"10px 8px", textAlign:"center"}}>
+                            <div style={{fontSize:20, marginBottom:4}}>{ic}</div>
+                            <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:22, color:col, lineHeight:1}}>{val}</div>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:D.gris, letterSpacing:1, marginTop:3, textTransform:"uppercase"}}>{lbl}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Barre de progression visuelle */}
+                    <div style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, padding:"14px 16px", marginBottom:14}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginBottom:10}}>Répartition des pronos</div>
+                      <div style={{display:"flex", gap:3, height:28, borderRadius:6, overflow:"hidden", marginBottom:8}}>
+                        {st.joues > 0 && <>
+                          <div style={{width:`${st.exacts/st.joues*100}%`, background:`linear-gradient(90deg,${D.vert},rgba(0,232,122,0.6))`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#000", minWidth: st.exacts>0?"20px":"0"}}>
+                            {st.exacts>0?st.exacts:""}
+                          </div>
+                          <div style={{width:`${(st.bons-st.exacts)/st.joues*100}%`, background:`linear-gradient(90deg,${D.cyan},rgba(0,212,255,0.6))`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:700, color:"#000", minWidth: (st.bons-st.exacts)>0?"20px":"0"}}>
+                            {(st.bons-st.exacts)>0?(st.bons-st.exacts):""}
+                          </div>
+                          <div style={{flex:1, background:"rgba(255,107,138,0.3)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:"#ff6b8a"}}>
+                            {st.nuls>0?st.nuls:""}
+                          </div>
+                        </>}
+                      </div>
+                      <div style={{display:"flex", gap:12, fontSize:10, color:D.gris, fontFamily:"'Barlow Condensed',sans-serif"}}>
+                        <span style={{color:D.vert}}>■ Score exact ({st.exacts})</span>
+                        <span style={{color:D.cyan}}>■ Bon résultat ({st.bons-st.exacts})</span>
+                        <span style={{color:"#ff6b8a"}}>■ Manqué ({st.nuls})</span>
+                      </div>
+                    </div>
+
+                    {/* Historique des pronos */}
+                    {st.history.length > 0 && (
+                      <div style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, overflow:"hidden"}}>
+                        <div style={{padding:"10px 14px", borderBottom:`1px solid ${D.border}`, fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase"}}>
+                          Historique des pronos
+                        </div>
+                        {st.history.slice().reverse().map((h,i)=>{
+                          const m = allMatchs.find(f=>f.id===h.matchId);
+                          return (
+                            <div key={i} style={{display:"flex", alignItems:"center", gap:10, padding:"10px 14px",
+                              borderBottom:i<st.history.length-1?`1px solid rgba(255,255,255,0.04)`:"none",
+                              background:h.ex?"rgba(0,232,122,0.05)":h.ok?"rgba(0,212,255,0.05)":"rgba(255,107,138,0.04)"}}>
+                              <div style={{fontSize:16, flexShrink:0}}>{h.ex?"✅":h.ok?"🎯":"❌"}</div>
+                              <div style={{flex:1, minWidth:0}}>
+                                <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, fontWeight:700, color:D.blanc, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>
+                                  {m?`${m.home} vs ${m.away}`:`Match #${h.matchId}`}
+                                </div>
+                                <div style={{fontSize:11, color:D.gris, marginTop:1}}>
+                                  Mon prono : <strong style={{color:D.blanc}}>{h.s1}–{h.s2}</strong>
+                                  {h.r && <span style={{marginLeft:8}}>Résultat : <strong style={{color:h.ex?D.vert:h.ok?D.cyan:"#ff6b8a"}}>{h.r.h}–{h.r.a}</strong></span>}
+                                </div>
+                              </div>
+                              <div style={{textAlign:"right", flexShrink:0}}>
+                                <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:18, color:h.ex?D.vert:h.ok?D.cyan:"#ff6b8a", lineHeight:1}}>+{h.pt}</div>
+                                <div style={{fontSize:9, color:D.gris}}>pts</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {st.joues === 0 && (
+                      <div style={{textAlign:"center", padding:"30px", color:D.gris, fontSize:13}}>
+                        {statsPlayer.emoji} {statsPlayer.name} n'a pas encore de pronos enregistrés.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Podium comparatif */}
+              {!statsPlayer && (
+                <div style={{background:D.card, border:`1px solid ${D.border}`, borderRadius:D.rlg, padding:"16px", marginTop:4}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, fontWeight:700, letterSpacing:2, color:D.gris, textTransform:"uppercase", marginBottom:14}}>Comparatif</div>
+                  {PLAYERS.map(p=>{
+                    const st=calcStats(pronos[p.id],results);
+                    const max=Math.max(...PLAYERS.map(pp=>calcStats(pronos[pp.id],results).pts),1);
+                    return(
+                      <div key={p.id} style={{marginBottom:12}}>
+                        <div style={{display:"flex", justifyContent:"space-between", marginBottom:4}}>
+                          <span style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, fontWeight:700}}>{p.emoji} {p.name}</span>
+                          <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:16, color:D.or}}>{st.pts} pts</span>
+                        </div>
+                        <div style={{height:8, background:"rgba(255,255,255,0.06)", borderRadius:4, overflow:"hidden"}}>
+                          <div style={{height:"100%", width:`${st.pts/max*100}%`, background:`linear-gradient(90deg,${D.acier},${D.cyan})`, borderRadius:4, transition:"width .6s ease"}}/>
+                        </div>
+                        <div style={{display:"flex", gap:10, marginTop:3, fontSize:10, color:D.gris, fontFamily:"'Barlow Condensed',sans-serif"}}>
+                          <span>{st.taux}% réussite</span>
+                          <span>{st.exacts} exacts</span>
+                          <span>série {st.meilleureSerie}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
         {/* ── SIDEBAR ── */}
         <div className="desktop-sidebar" style={{display:"flex", flexDirection:"column", gap:16}}>
@@ -1071,6 +1274,17 @@ function MatchCard({ f, myProno, onProno, onResume }) {
 
       {f.venue && <div style={{textAlign:"center", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:"#8A97B0", marginTop:8}}>📍 {f.venue}</div>}
       {f.note  && <div style={{textAlign:"center", fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, color:"#F5C518", marginTop:4}}>ℹ️ {f.note}</div>}
+
+      {f.odds && (
+        <div style={{display:"flex", gap:6, marginTop:10, justifyContent:"center"}}>
+          {[["1",f.odds.home,"#00D4FF"],[" X",f.odds.draw,"#8A97B0"],["2",f.odds.away,"#ff6b8a"]].map(([lbl,val,col])=>(
+            val ? <div key={lbl} style={{flex:1, textAlign:"center", background:"rgba(255,255,255,0.04)", borderRadius:8, padding:"5px 4px", border:`1px solid rgba(255,255,255,0.07)`}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif", fontSize:9, color:"#8A97B0", letterSpacing:1}}>{lbl}</div>
+              <div style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:16, color:col, lineHeight:1.2}}>{val}</div>
+            </div> : null
+          ))}
+        </div>
+      )}
 
       {myProno && (
         <div style={{marginTop:8, fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, fontWeight:700, color:"#00D4FF", textAlign:"center", background:"rgba(0,212,255,0.08)", borderRadius:"6px", padding:"4px 0", letterSpacing:.5}}>
