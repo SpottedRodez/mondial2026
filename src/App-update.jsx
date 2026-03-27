@@ -8,7 +8,7 @@ import { db, ref, set, onValue } from "./firebase.js";
 //  score:{h,a}, status:"done", resume:{...}
 // ══════════════════════════════════════════════════════
 const DATA = {
-  lastUpdate: "21 mars 2026 · 19h00",
+  lastUpdate: "27 mars 2026 · 10h00",
   amicaux: [
     // Exemple match terminé avec résumé complet :
     // { id:"j0", home:"Exemple", hL:"🏳", away:"Test", aL:"🏳", date:"20 mars · 20h00",
@@ -21,33 +21,34 @@ const DATA = {
     //     motm:"X (Exemple)"
     //   }
     // },
-    { id:"j1",  home:"Japon",      hL:"🇯🇵", away:"Corée du Sud",  aL:"🇰🇷", date:"24 mars · 13h00", venue:"National Stadium, Tokyo",              status:"future", score:null },
-    { id:"j2",  home:"Allemagne",  hL:"🇩🇪", away:"Pays-Bas",      aL:"🇳🇱", date:"25 mars · 20h45", venue:"Allianz Arena, Munich",                status:"future", score:null },
-    { id:"j3",  home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Belgique",      aL:"🇧🇪", date:"25 mars · 20h00", venue:"Wembley, Londres",                    status:"future", score:null },
-    { id:"j4",  home:"USA",        hL:"🇺🇸", away:"Mexique",       aL:"🇲🇽", date:"25 mars · 22h00", venue:"Rose Bowl, Los Angeles",               status:"future", score:null },
-    { id:"j5",  home:"Maroc",      hL:"🇲🇦", away:"Sénégal",       aL:"🇸🇳", date:"25 mars · 19h00", venue:"Complexe Mohammed VI, Rabat",          status:"future", score:null },
-    { id:"j6",  home:"Brésil",     hL:"🇧🇷", away:"France",        aL:"🇫🇷", date:"26 mars · 21h00", venue:"Gillette Stadium, Foxborough (Boston)", status:"future", score:null, highlight:true },
-    { id:"j7",  home:"Portugal",   hL:"🇵🇹", away:"Uruguay",       aL:"🇺🇾", date:"26 mars · 22h00", venue:"Estádio da Luz, Lisbonne",             status:"future", score:null },
+    { id:"j1",  home:"Japon",      hL:"🇯🇵", away:"Corée du Sud",  aL:"🇰🇷", date:"24 mars · 13h00", venue:"National Stadium, Tokyo",              status:"done", score:{h:0,a:0},
+      resume:{ texte:"Match nul sans but entre le Japon et la Corée du Sud.", buts:[], cartons:[], motm:"À préciser" }},
+    { id:"j2",  home:"Allemagne",  hL:"🇩🇪", away:"Pays-Bas",      aL:"🇳🇱", date:"27 mars · 20h45", venue:"Allianz Arena, Munich",                status:"future", score:null },
+    { id:"j3",  home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Uruguay",       aL:"🇺🇾", date:"27 mars · 20h45", venue:"Wembley, Londres",                    status:"future", score:null },
+    { id:"j4",  home:"USA",        hL:"🇺🇸", away:"Belgique",      aL:"🇧🇪", date:"28 mars · 20h30", venue:"États-Unis",                           status:"future", score:null },
+    { id:"j5",  home:"Maroc",      hL:"🇲🇦", away:"Équateur",      aL:"🇪🇨", date:"27 mars · 21h15", venue:"Maroc",                                status:"future", score:null },
+    { id:"j6",  home:"Brésil",     hL:"🇧🇷", away:"France",        aL:"🇫🇷", date:"26 mars · 21h00", venue:"Gillette Stadium, Foxborough (Boston)", status:"done",   score:{h:1,a:2}, highlight:true,
+      resume:{ texte:"La France s'impose 2-1 face au Brésil dans un match de préparation au Mondial 2026 à Foxborough. Mbappé ouvre le score sur penalty (32'), Ekitiké double la mise (65'). Bremer réduit pour le Brésil (78') mais les Bleus tiennent.", buts:["⚽ 32' Mbappé (pen.) — France","⚽ 65' Ekitiké — France","⚽ 78' Bremer — Brésil"], cartons:[], motm:"Hugo Ekitiké" }},
+    { id:"j7",  home:"Colombie",   hL:"🇨🇴", away:"Croatie",       aL:"🇭🇷", date:"27 mars · 00h30", venue:"États-Unis",                           status:"done",   score:{h:1,a:2},
+      resume:{ texte:"La Croatie s'impose 2-1 face à la Colombie.", buts:["⚽ Colombie 1","⚽ Croatie 2"], cartons:[], motm:"À préciser" }},
     { id:"j8",  home:"France",     hL:"🇫🇷", away:"Colombie",      aL:"🇨🇴", date:"29 mars · 21h00", venue:"Northwest Stadium, Landover",          status:"future", score:null },
-    { id:"j9",  home:"Argentine",  hL:"🇦🇷", away:"Équateur",      aL:"🇪🇨", date:"29 mars · 00h30", venue:"Monumental, Buenos Aires",             status:"future", score:null },
+    { id:"j9",  home:"Espagne",    hL:"🇪🇸", away:"Serbie",        aL:"🇷🇸", date:"27 mars · 21h00", venue:"Espagne",                              status:"future", score:null },
     { id:"j10", home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Japon",          aL:"🇯🇵", date:"31 mars · 20h45", venue:"Wembley, Londres",                    status:"future", score:null },
-    { id:"j11", home:"Pays-Bas",   hL:"🇳🇱", away:"Équateur",      aL:"🇪🇨", date:"31 mars · 20h45", venue:"Johan Cruyff ArenA, Amsterdam",        status:"future", score:null },
+    { id:"j11", home:"Pays-Bas",   hL:"🇳🇱", away:"Norvège",       aL:"🇳🇴", date:"27 mars · 20h45", venue:"Johan Cruyff ArenA, Amsterdam",        status:"future", score:null },
     { id:"j12", home:"Maroc",      hL:"🇲🇦", away:"Paraguay",      aL:"🇵🇾", date:"31 mars · 20h00", venue:"Maroc",                                status:"future", score:null },
-    { id:"j13", home:"Sénégal",    hL:"🇸🇳", away:"Gambie",        aL:"🇬🇲", date:"31 mars · 21h00", venue:"Dakar",                                status:"future", score:null },
-    { id:"j14", home:"Qatar",      hL:"🇶🇦", away:"Argentine",     aL:"🇦🇷", date:"31 mars · 21h00", venue:"Qatar",                                status:"future", score:null },
-    { id:"j15", home:"USA",        hL:"🇺🇸", away:"Portugal",      aL:"🇵🇹", date:"1er avr · 01h00", venue:"États-Unis",                           status:"future", score:null },
-    { id:"j16", home:"Brésil",     hL:"🇧🇷", away:"Croatie",       aL:"🇭🇷", date:"1er avr · 02h00", venue:"États-Unis",                           status:"future", score:null },
-    { id:"j17", home:"Mexique",    hL:"🇲🇽", away:"Belgique",      aL:"🇧🇪", date:"1er avr · 03h00", venue:"Mexique",                              status:"future", score:null },
+    { id:"j13", home:"Sénégal",    hL:"🇸🇳", away:"Pérou",         aL:"🇵🇪", date:"28 mars · 17h00", venue:"Dakar",                                status:"future", score:null },
+    { id:"j14", home:"USA",        hL:"🇺🇸", away:"Portugal",      aL:"🇵🇹", date:"1er avr · 01h00", venue:"États-Unis",                           status:"future", score:null },
+    { id:"j15", home:"Brésil",     hL:"🇧🇷", away:"Croatie",       aL:"🇭🇷", date:"1er avr · 02h00", venue:"États-Unis",                           status:"future", score:null },
+    { id:"j16", home:"Mexique",    hL:"🇲🇽", away:"Portugal",      aL:"🇵🇹", date:"29 mars · 03h00", venue:"Mexique",                              status:"future", score:null },
+    { id:"j17", home:"Argentine",  hL:"🇦🇷", away:"Mauritanie",    aL:"🇲🇷", date:"28 mars · 00h15", venue:"Argentine",                            status:"future", score:null },
   ],
   news: [
-    { id:1, source:"90MIN",     hot:true,  icon:"🚨", title:"Mbappé forfait — absent pour toute la trêve de mars",                  summary:"Kylian Mbappé est blessé pour plusieurs semaines. Il manquera Brésil-France.", time:"il y a 1h" },
-    { id:2, source:"FFF",       hot:true,  icon:"🇫🇷", title:"Liste Deschamps : qui remplace Mbappé pour Brésil-France ?",           summary:"Lucas Chevalier, Kalulu et Akliouche sont attendus dans la liste.", time:"il y a 2h" },
-    { id:3, source:"90MIN",     hot:true,  icon:"❌", title:"Finalissima annulée : Espagne-Argentine ne se jouera pas",              summary:"Le match au Qatar est officiellement annulé.", time:"il y a 3h" },
-    { id:4, source:"GLOBO",     hot:false, icon:"🇧🇷", title:"Vinicius Jr. titulaire face à la France au Gillette Stadium",           summary:"L'attaquant du Real Madrid sera disponible pour l'amical du 26 mars.", time:"il y a 4h" },
-    { id:5, source:"AS",        hot:false, icon:"🇦🇷", title:"Messi présent avec l'Argentine pour l'amical face au Qatar",            summary:"Le septuple Ballon d'Or sera là pour le match du 31 mars.", time:"il y a 5h" },
-    { id:6, source:"BBC SPORT", hot:false, icon:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", title:"England vs Belgium at Wembley, then Japan — Southgate's squad named",  summary:"Full squad selected for the two March friendlies.", time:"il y a 6h" },
-    { id:7, source:"RMC SPORT", hot:false, icon:"🎙️", title:"Maroc : Brahim Diaz convoqué pour les amicaux de mars",                summary:"L'international marocain du Real Madrid dans la liste.", time:"il y a 8h" },
-    { id:8, source:"EUROSPORT", hot:false, icon:"📅", title:"17 amicaux impliquant des équipes qualifiées WC du 24 mars au 1er avril", summary:"Programme complet de la trêve internationale de mars 2026.", time:"il y a 10h" },
+    { id:1, source:"ICI SPORT",  hot:true,  icon:"🏆", title:"France 2-1 Brésil — les Bleus s'imposent à Foxborough !",                summary:"Mbappé (32' pen.) et Ekitiké (65') ont offert la victoire à la France. Bremer réduit pour le Brésil (78'). Première victoire des Bleus contre la Seleção depuis longtemps.", time:"hier" },
+    { id:2, source:"L'ÉQUIPE",   hot:true,  icon:"⚽", title:"Ekitiké homme du match — sa montée en puissance rassure Deschamps",       summary:"L'attaquant du PSG a été décisif avec son but à la 65e. Sa performance va relancer le débat sur sa place en équipe de France au Mondial.", time:"hier" },
+    { id:3, source:"TF1",        hot:true,  icon:"🇫🇷", title:"Mbappé de retour — il a finalement joué malgré sa blessure",              summary:"Surprise ! Mbappé était bien là et a ouvert le score sur penalty. Il avait été annoncé forfait mais le staff médical a validé sa participation au dernier moment.", time:"hier" },
+    { id:4, source:"GLOBO",      hot:false, icon:"🇧🇷", title:"Brésil déçoit malgré Vinicius Jr. — la Seleção cherche ses repères",      summary:"Le Brésil a dominé en seconde période mais n'a pas réussi à revenir. Bremer sauve l'honneur à la 78e. Inquiétudes avant le Mondial.", time:"hier" },
+    { id:5, source:"EUROSPORT",  hot:false, icon:"📅", title:"France-Colombie dimanche 29 mars — deuxième test avant le Mondial",       summary:"Après la victoire contre le Brésil, les Bleus affronteront la Colombie à Landover. Dernier test avant l'annonce de la liste finale le 13 mai.", time:"hier" },
+    { id:6, source:"COTEUR",     hot:false, icon:"🌍", title:"Résultats du 27 mars : Allemagne, Angleterre, Pays-Bas, Espagne jouent",  summary:"Suisse-Allemagne, Angleterre-Uruguay, Pays-Bas-Norvège et Espagne-Serbie sont au programme ce vendredi 27 mars.", time:"aujourd'hui" },
   ],
 };
 
@@ -388,7 +389,7 @@ export default function App() {
   const grouped = {};
   future.forEach(f => { const d=f.date.split("·")[0].trim(); if(!grouped[d])grouped[d]=[]; grouped[d].push(f); });
 
-  const tickerText = `🚨 Mbappé FORFAIT mars   ·   Brésil 🇧🇷 vs France 🇫🇷 — 26 mars · 21h00 · TF1   ·   France 🇫🇷 vs Colombie 🇨🇴 — 29 mars   ·   Finalissima ANNULÉE   ·   Angleterre 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs Belgique 🇧🇪 — 25 mars · Wembley   ·   Allemagne 🇩🇪 vs Pays-Bas 🇳🇱 — 25 mars · Munich   ·   `;
+  const tickerText = `🏆 FRANCE 2-1 BRÉSIL — Mbappé pen. 32' · Ekitiké 65' · Bremer 78'   ·   France 🇫🇷 vs Colombie 🇨🇴 — 29 mars · 21h00   ·   Allemagne 🇩🇪 vs Suisse 🇨🇭 — 27 mars · 20h45   ·   Angleterre 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs Uruguay 🇺🇾 — 27 mars · 20h45   ·   Pays-Bas 🇳🇱 vs Norvège 🇳🇴 — 27 mars · 20h45   ·   `;
 
   return (
     <div style={{background:D.bg, color:D.blanc, fontFamily:"'Barlow',sans-serif", minHeight:"100vh", paddingBottom:48}}>
