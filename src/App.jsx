@@ -8,7 +8,7 @@ import { db, ref, set, onValue } from "./firebase.js";
 //  score:{h,a}, status:"done", resume:{...}
 // ══════════════════════════════════════════════════════
 const DATA = {
-  lastUpdate: "27 mars 2026 · 10h00",
+  lastUpdate: "28 mars 2026 · 14h00",
   amicaux: [
     // Exemple match terminé avec résumé complet :
     // { id:"j0", home:"Exemple", hL:"🏳", away:"Test", aL:"🏳", date:"20 mars · 20h00",
@@ -22,33 +22,39 @@ const DATA = {
     //   }
     // },
     { id:"j1",  home:"Japon",      hL:"🇯🇵", away:"Corée du Sud",  aL:"🇰🇷", date:"24 mars · 13h00", venue:"National Stadium, Tokyo",              status:"done", score:{h:0,a:0},
-      resume:{ texte:"Match nul sans but entre le Japon et la Corée du Sud.", buts:[], cartons:[], motm:"À préciser" }},
-    { id:"j2",  home:"Allemagne",  hL:"🇩🇪", away:"Pays-Bas",      aL:"🇳🇱", date:"27 mars · 20h45", venue:"Allianz Arena, Munich",                status:"future", score:null },
-    { id:"j3",  home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Uruguay",       aL:"🇺🇾", date:"27 mars · 20h45", venue:"Wembley, Londres",                    status:"future", score:null },
+      resume:{ texte:"Match nul 0-0 entre le Japon et la Corée du Sud.", buts:[], cartons:[], motm:"À préciser" }},
+    { id:"j2",  home:"Suisse",     hL:"🇨🇭", away:"Allemagne",     aL:"🇩🇪", date:"27 mars · 20h45", venue:"Suisse",                               status:"done", score:{h:3,a:4},
+      resume:{ texte:"Match fou ! L'Allemagne s'impose 4-3 en Suisse grâce à un doublé de Wirtz en fin de match. Tah (26'), Gnabry (45+2'), Wirtz (61', 85') pour l'Allemagne. Ndoye (17'), Embolo (41'), Monteiro (79') pour la Suisse.", buts:["⚽ 17' Ndoye — Suisse","⚽ 26' Tah — Allemagne","⚽ 41' Embolo — Suisse","⚽ 45+2' Gnabry — Allemagne","⚽ 61' Wirtz — Allemagne","⚽ 79' Monteiro — Suisse","⚽ 85' Wirtz — Allemagne"], cartons:[], motm:"Florian Wirtz" }},
+    { id:"j3",  home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Uruguay",       aL:"🇺🇾", date:"27 mars · 20h45", venue:"Wembley, Londres",                    status:"done", score:{h:1,a:1},
+      resume:{ texte:"Match décevant pour l'Angleterre à Wembley. White ouvre le score (81') mais Valverde égalise sur penalty en toute fin de match (90+4'). Ben White concède le penalty qui coûte la victoire.", buts:["⚽ 81' B. White — Angleterre","⚽ 90+4' Valverde (pen.) — Uruguay"], cartons:[], motm:"F. Valverde" }},
     { id:"j4",  home:"USA",        hL:"🇺🇸", away:"Belgique",      aL:"🇧🇪", date:"28 mars · 20h30", venue:"États-Unis",                           status:"future", score:null },
-    { id:"j5",  home:"Maroc",      hL:"🇲🇦", away:"Équateur",      aL:"🇪🇨", date:"27 mars · 21h15", venue:"Maroc",                                status:"future", score:null },
+    { id:"j5",  home:"Maroc",      hL:"🇲🇦", away:"Équateur",      aL:"🇪🇨", date:"27 mars · 21h15", venue:"Maroc",                                status:"done", score:{h:1,a:1},
+      resume:{ texte:"Match nul 1-1 entre le Maroc et l'Équateur. El Aynaoui (88') pour le Maroc, Yeboah (48') pour l'Équateur.", buts:["⚽ 48' Yeboah — Équateur","⚽ 88' El Aynaoui — Maroc"], cartons:[], motm:"À préciser" }},
     { id:"j6",  home:"Brésil",     hL:"🇧🇷", away:"France",        aL:"🇫🇷", date:"26 mars · 21h00", venue:"Gillette Stadium, Foxborough (Boston)", status:"done",   score:{h:1,a:2}, highlight:true,
-      resume:{ texte:"La France s'impose 2-1 face au Brésil dans un match de préparation au Mondial 2026 à Foxborough. Mbappé ouvre le score sur penalty (32'), Ekitiké double la mise (65'). Bremer réduit pour le Brésil (78') mais les Bleus tiennent.", buts:["⚽ 32' Mbappé (pen.) — France","⚽ 65' Ekitiké — France","⚽ 78' Bremer — Brésil"], cartons:[], motm:"Hugo Ekitiké" }},
+      resume:{ texte:"La France s'impose 2-1 face au Brésil à Foxborough. Mbappé ouvre le score sur penalty (32'), Ekitiké double (65'). Bremer réduit pour le Brésil (78') mais les Bleus tiennent.", buts:["⚽ 32' Mbappé (pen.) — France","⚽ 65' Ekitiké — France","⚽ 78' Bremer — Brésil"], cartons:[], motm:"Hugo Ekitiké" }},
     { id:"j7",  home:"Colombie",   hL:"🇨🇴", away:"Croatie",       aL:"🇭🇷", date:"27 mars · 00h30", venue:"États-Unis",                           status:"done",   score:{h:1,a:2},
       resume:{ texte:"La Croatie s'impose 2-1 face à la Colombie.", buts:["⚽ Colombie 1","⚽ Croatie 2"], cartons:[], motm:"À préciser" }},
-    { id:"j8",  home:"France",     hL:"🇫🇷", away:"Colombie",      aL:"🇨🇴", date:"29 mars · 21h00", venue:"Northwest Stadium, Landover",          status:"future", score:null },
-    { id:"j9",  home:"Espagne",    hL:"🇪🇸", away:"Serbie",        aL:"🇷🇸", date:"27 mars · 21h00", venue:"Espagne",                              status:"future", score:null },
-    { id:"j10", home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Japon",          aL:"🇯🇵", date:"31 mars · 20h45", venue:"Wembley, Londres",                    status:"future", score:null },
-    { id:"j11", home:"Pays-Bas",   hL:"🇳🇱", away:"Norvège",       aL:"🇳🇴", date:"27 mars · 20h45", venue:"Johan Cruyff ArenA, Amsterdam",        status:"future", score:null },
-    { id:"j12", home:"Maroc",      hL:"🇲🇦", away:"Paraguay",      aL:"🇵🇾", date:"31 mars · 20h00", venue:"Maroc",                                status:"future", score:null },
+    { id:"j8",  home:"Espagne",    hL:"🇪🇸", away:"Serbie",        aL:"🇷🇸", date:"27 mars · 21h00", venue:"Espagne",                              status:"done", score:{h:3,a:0},
+      resume:{ texte:"L'Espagne domine largement la Serbie 3-0. Oyarzabal s'illustre avec un doublé (16', 43'). Víctor Muñoz complète (72').", buts:["⚽ 16' Oyarzabal — Espagne","⚽ 43' Oyarzabal — Espagne","⚽ 72' V. Muñoz — Espagne"], cartons:[], motm:"M. Oyarzabal" }},
+    { id:"j9",  home:"Pays-Bas",   hL:"🇳🇱", away:"Norvège",       aL:"🇳🇴", date:"27 mars · 20h45", venue:"Johan Cruyff ArenA, Amsterdam",        status:"done", score:{h:2,a:1},
+      resume:{ texte:"Les Pays-Bas s'imposent 2-1 face à une Norvège privée d'Haaland et Odegaard. Van Dijk (35') et Reijnders (51') pour les Pays-Bas, Schjelderup (24') pour la Norvège.", buts:["⚽ 24' Schjelderup — Norvège","⚽ 35' Van Dijk — Pays-Bas","⚽ 51' Reijnders — Pays-Bas"], cartons:[], motm:"T. Reijnders" }},
+    { id:"j10", home:"Argentine",  hL:"🇦🇷", away:"Mauritanie",    aL:"🇲🇷", date:"28 mars · 00h15", venue:"Argentine",                            status:"done", score:{h:2,a:1},
+      resume:{ texte:"L'Argentine s'impose 2-1 face à la Mauritanie. E. Fernández (17') et N. Paz (32') pour l'Argentine, Lefort (90+4') pour la Mauritanie.", buts:["⚽ 17' E. Fernández — Argentine","⚽ 32' N. Paz — Argentine","⚽ 90+4' Lefort — Mauritanie"], cartons:[], motm:"À préciser" }},
+    { id:"j11", home:"France",     hL:"🇫🇷", away:"Colombie",      aL:"🇨🇴", date:"29 mars · 21h00", venue:"Northwest Stadium, Landover",          status:"future", score:null },
+    { id:"j12", home:"USA",        hL:"🇺🇸", away:"Belgique",      aL:"🇧🇪", date:"28 mars · 20h30", venue:"États-Unis",                           status:"future", score:null },
     { id:"j13", home:"Sénégal",    hL:"🇸🇳", away:"Pérou",         aL:"🇵🇪", date:"28 mars · 17h00", venue:"Dakar",                                status:"future", score:null },
     { id:"j14", home:"USA",        hL:"🇺🇸", away:"Portugal",      aL:"🇵🇹", date:"1er avr · 01h00", venue:"États-Unis",                           status:"future", score:null },
     { id:"j15", home:"Brésil",     hL:"🇧🇷", away:"Croatie",       aL:"🇭🇷", date:"1er avr · 02h00", venue:"États-Unis",                           status:"future", score:null },
     { id:"j16", home:"Mexique",    hL:"🇲🇽", away:"Portugal",      aL:"🇵🇹", date:"29 mars · 03h00", venue:"Mexique",                              status:"future", score:null },
-    { id:"j17", home:"Argentine",  hL:"🇦🇷", away:"Mauritanie",    aL:"🇲🇷", date:"28 mars · 00h15", venue:"Argentine",                            status:"future", score:null },
+    { id:"j17", home:"Angleterre", hL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", away:"Japon",          aL:"🇯🇵", date:"31 mars · 20h45", venue:"Wembley, Londres",                    status:"future", score:null },
   ],
   news: [
-    { id:1, source:"ICI SPORT",  hot:true,  icon:"🏆", title:"France 2-1 Brésil — les Bleus s'imposent à Foxborough !",                summary:"Mbappé (32' pen.) et Ekitiké (65') ont offert la victoire à la France. Bremer réduit pour le Brésil (78'). Première victoire des Bleus contre la Seleção depuis longtemps.", time:"hier" },
-    { id:2, source:"L'ÉQUIPE",   hot:true,  icon:"⚽", title:"Ekitiké homme du match — sa montée en puissance rassure Deschamps",       summary:"L'attaquant du PSG a été décisif avec son but à la 65e. Sa performance va relancer le débat sur sa place en équipe de France au Mondial.", time:"hier" },
-    { id:3, source:"TF1",        hot:true,  icon:"🇫🇷", title:"Mbappé de retour — il a finalement joué malgré sa blessure",              summary:"Surprise ! Mbappé était bien là et a ouvert le score sur penalty. Il avait été annoncé forfait mais le staff médical a validé sa participation au dernier moment.", time:"hier" },
-    { id:4, source:"GLOBO",      hot:false, icon:"🇧🇷", title:"Brésil déçoit malgré Vinicius Jr. — la Seleção cherche ses repères",      summary:"Le Brésil a dominé en seconde période mais n'a pas réussi à revenir. Bremer sauve l'honneur à la 78e. Inquiétudes avant le Mondial.", time:"hier" },
-    { id:5, source:"EUROSPORT",  hot:false, icon:"📅", title:"France-Colombie dimanche 29 mars — deuxième test avant le Mondial",       summary:"Après la victoire contre le Brésil, les Bleus affronteront la Colombie à Landover. Dernier test avant l'annonce de la liste finale le 13 mai.", time:"hier" },
-    { id:6, source:"COTEUR",     hot:false, icon:"🌍", title:"Résultats du 27 mars : Allemagne, Angleterre, Pays-Bas, Espagne jouent",  summary:"Suisse-Allemagne, Angleterre-Uruguay, Pays-Bas-Norvège et Espagne-Serbie sont au programme ce vendredi 27 mars.", time:"aujourd'hui" },
+    { id:1, source:"L'EQUIPE",   hot:true,  icon:"🏆", title:"France 2-1 Brésil — victoire historique des Bleus à Boston",              summary:"Mbappé (32' pen.) et Ekitiké (65') offrent la victoire. Bremer réduit (78'). Les Bleus s'imposent pour la première fois face au Brésil depuis longtemps.", time:"il y a 2j" },
+    { id:2, source:"EUROSPORT",  hot:true,  icon:"🇩🇪", title:"Wirtz héroïque — Allemagne renverse la Suisse 4-3 avec un doublé en fin de match", summary:"Match complètement fou ! Wirtz marque à la 61' et 85' pour offrir une victoire renversante à l'Allemagne. L'Allemagne affiche ses ambitions pour le Mondial.", time:"hier" },
+    { id:3, source:"EUROSPORT",  hot:false, icon:"🇪🇸", title:"Espagne déroule — 3-0 contre la Serbie, Oyarzabal en grande forme",       summary:"Oyarzabal s'offre un doublé (16', 43') et Víctor Muñoz complète (72'). L'Espagne impressionne avant la Coupe du monde.", time:"hier" },
+    { id:4, source:"EUROSPORT",  hot:false, icon:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", title:"Angleterre frustrée — Valverde égalise sur penalty à la 90+4' (1-1)",     summary:"Ben White ouvre (81') mais concède un penalty en fin de match transformé par Valverde. Les Three Lions inquiètent à 3 mois du Mondial.", time:"hier" },
+    { id:5, source:"FOOTMERCATO",hot:false, icon:"📅", title:"France-Colombie ce soir 29 mars à 21h00 — dernier test avant le Mondial",  summary:"Après la belle victoire contre le Brésil, les Bleus affrontent la Colombie à Landover. Liste finale annoncée le 13 mai.", time:"aujourd'hui" },
+    { id:6, source:"FOOTMERCATO",hot:false, icon:"🌍", title:"USA-Belgique et Sénégal-Pérou au programme ce 28 mars",                   summary:"La trêve internationale se poursuit. USA vs Belgique à 20h30, Sénégal vs Pérou à 17h.", time:"aujourd'hui" },
   ],
 };
 
@@ -389,7 +395,7 @@ export default function App() {
   const grouped = {};
   future.forEach(f => { const d=f.date.split("·")[0].trim(); if(!grouped[d])grouped[d]=[]; grouped[d].push(f); });
 
-  const tickerText = `🏆 FRANCE 2-1 BRÉSIL — Mbappé pen. 32' · Ekitiké 65' · Bremer 78'   ·   France 🇫🇷 vs Colombie 🇨🇴 — 29 mars · 21h00   ·   Allemagne 🇩🇪 vs Suisse 🇨🇭 — 27 mars · 20h45   ·   Angleterre 🏴󠁧󠁢󠁥󠁮󠁧󠁿 vs Uruguay 🇺🇾 — 27 mars · 20h45   ·   Pays-Bas 🇳🇱 vs Norvège 🇳🇴 — 27 mars · 20h45   ·   `;
+  const tickerText = `🏆 FRANCE 2-1 BRÉSIL · 🇩🇪 Allemagne 4-3 Suisse · 🇪🇸 Espagne 3-0 Serbie · 🇳🇱 Pays-Bas 2-1 Norvège · 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Angleterre 1-1 Uruguay   ·   France 🇫🇷 vs Colombie 🇨🇴 — 29 mars · 21h00   ·   USA 🇺🇸 vs Belgique 🇧🇪 — 28 mars · 20h30   ·   `;
 
   return (
     <div style={{background:D.bg, color:D.blanc, fontFamily:"'Barlow',sans-serif", minHeight:"100vh", paddingBottom:48}}>
